@@ -23,7 +23,7 @@ jobs:
       - name: Generate native iOS project
         run: npx expo prebuild --platform ios
 
-      - name: Build unsigned archive
+      - name: Build unsigned app (device)
         working-directory: ios
         run: |
           set -eo pipefail
@@ -33,30 +33,39 @@ jobs:
           echo "Workspace: $WORKSPACE"
           echo "Scheme:    $SCHEME"
 
-          xcodebuild archive \
+          # Use the "build" action, not "archive": with code signing disabled,
+          # `xcodebuild archive` treats the app target as un-archivable and
+          # silently skips compiling/linking it (it still reports "Archive
+          # Succeeded" after only building library dependencies), leaving no
+          # Products/Applications/*.app behind. `build` has no such gate.
+          xcodebuild build \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath build/Oryn.xcarchive \
+            -derivedDataPath build \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS="" \
             DEVELOPMENT_TEAM="" \
-            | tee ../xcodebuild.log | xcpretty || (echo "xcpretty not available, showing raw log tail:" && tail -n 300 ../xcodebuild.log)
+            2>&1 | tee ../xcodebuild.log
 
       - name: Package unsigned IPA
         run: |
           set -eo pipefail
-          cd ios/build/Oryn.xcarchive/Products/Applications
-          APP_DIR=$(ls -d *.app | head -n1)
-          echo "App bundle: $APP_DIR"
-          mkdir Payload
-          cp -r "$APP_DIR" Payload/
-          zip -r -y "$GITHUB_WORKSPACE/oryn-unsigned.ipa" Payload
-          cd "$GITHUB_WORKSPACE"
+          APP_PATH=$(find ios/build/Build/Products -mindepth 2 -maxdepth 2 -iname "*.app" | head -n1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app product found under ios/build/Build/Products:" >&2
+            find ios/build/Build/Products -maxdepth 2 >&2 || true
+            exit 1
+          fi
+          echo "App bundle: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r -y oryn-unsigned.ipa Payload
           ls -lh oryn-unsigned.ipa
 
       - name: Upload IPA artifact
