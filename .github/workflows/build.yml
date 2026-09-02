@@ -28,10 +28,22 @@ jobs:
         run: |
           set -eo pipefail
           WORKSPACE=$(ls -d *.xcworkspace | head -n1)
-          SCHEME=$(xcodebuild -list -workspace "$WORKSPACE" -json \
-            | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{console.log(JSON.parse(d).workspace.schemes.find(s=>!/Pods|Tests/.test(s)));});")
+          # Expo/RN's Podfile enables generate_multiple_pod_projects, which
+          # gives every individual Pod its own shared scheme (EXApplication,
+          # React-Fabric, ...). Picking "the first non-Pods/Tests scheme"
+          # from `xcodebuild -list` grabs one of those at random instead of
+          # the app. The app's scheme is always named after the workspace.
+          SCHEME="${WORKSPACE%.xcworkspace}"
           echo "Workspace: $WORKSPACE"
           echo "Scheme:    $SCHEME"
+
+          AVAILABLE_SCHEMES=$(xcodebuild -list -workspace "$WORKSPACE" -json \
+            | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{console.log(JSON.parse(d).workspace.schemes.join('\n'));});")
+          if ! grep -qxF "$SCHEME" <<< "$AVAILABLE_SCHEMES"; then
+            echo "Scheme '$SCHEME' not found in workspace. Available schemes:" >&2
+            echo "$AVAILABLE_SCHEMES" >&2
+            exit 1
+          fi
 
           # Use the "build" action, not "archive": with code signing disabled,
           # `xcodebuild archive` treats the app target as un-archivable and
