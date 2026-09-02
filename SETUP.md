@@ -36,15 +36,9 @@ A complete React Native + Expo app:
 
 ---
 
-## Step 2 — Install Expo CLI
+## Step 2 — Set up the project
 
-```bash
-npm install -g expo-cli eas-cli
-```
-
----
-
-## Step 3 — Set up the project
+No global CLI install needed — `npx` runs everything from the project's own dependencies.
 
 ```bash
 cd path/to/oryn
@@ -53,7 +47,7 @@ npm install
 
 ---
 
-## Step 4 — Preview on your iPhone (no Mac needed)
+## Step 3 — Preview on your iPhone (no Mac needed)
 
 1. Install **Expo Go** on your iPhone (free, App Store)
 2. Run:
@@ -63,24 +57,60 @@ npx expo start
 3. Scan the QR code with your iPhone camera
 4. Oryn opens instantly on your phone ✓
 
+This is great for trying things out, but Expo Go can't do Face ID, background
+tasks, or install as a real standalone app icon. For that, sideload a real
+build — see below.
+
 ---
 
-## Step 5 — Publish to the App Store
+## Step 4 — Sideload a real app onto your iPhone (free, no Mac, no Apple Developer account)
+
+This builds an actual `.ipa` you install permanently on your phone with an
+icon on your home screen — using nothing but a free Apple ID.
+
+1. On GitHub, go to **Actions → Build Oryn Sideloadable IPA → Run workflow**.
+   This runs entirely on GitHub's macOS runners — you don't need a Mac.
+2. Wait for the run to finish (~10–15 min), then open it and download the
+   **`oryn-unsigned-ipa`** artifact. Unzip it to get `oryn-unsigned.ipa`.
+3. Install **[AltStore](https://altstore.io)** or **[SideStore](https://sidestore.io)**
+   on your iPhone (follow their setup guide — it pairs with your free Apple ID
+   the same way Xcode would).
+4. Open AltStore/SideStore, choose **My Apps → +**, and select `oryn-unsigned.ipa`.
+   The app signs it with your Apple ID and installs it like any other app.
+5. On your iPhone: **Settings → General → VPN & Device Management** → trust
+   your Apple ID developer profile the first time you launch Oryn.
+
+**The catch with a free Apple ID:** the app's signature expires after **7
+days**, after which iOS refuses to open it until you re-sign. AltStore/
+SideStore can do this automatically in the background as long as the app
+stays installed and your phone is on Wi-Fi periodically (SideStore can even
+do it without a computer nearby; AltStore needs AltServer running on a
+computer on the same network once a week). A **paid Apple Developer account**
+($99/year) extends this to a full year per build and removes the weekly
+refresh entirely — worth it if 7-day resigning gets annoying.
+
+---
+
+## Optional — Publish to the App Store instead
+
+Only needed if you eventually want Oryn on the public App Store rather than
+sideloaded for personal use.
 
 ### Accounts needed
 - **Apple Developer**: developer.apple.com — $99/year
 - **Expo EAS**: expo.dev — free
 
 ### Configure app.json
-- Change `"bundleIdentifier"` from `com.yourname.oryn` to something unique, e.g. `com.agit.oryn`
+- `"bundleIdentifier"` is already set to `com.agit.oryn` — change it to your
+  own reverse-domain identifier if you want a different one
 - After running `eas init`, paste your project ID into `"projectId"`
 
 ### Build & Submit
 ```bash
-eas login
-eas init
-eas build --platform ios      # builds in Expo cloud, ~10-15 min
-eas submit --platform ios     # uploads to App Store Connect
+npx eas-cli login
+npx eas-cli init
+npx eas-cli build --platform ios --profile preview   # builds in Expo cloud, ~10-15 min
+npx eas-cli submit --platform ios                    # uploads to App Store Connect
 ```
 
 ### App Store Connect
@@ -120,15 +150,14 @@ Recommended: file in Switzerland first (your home market), then EU. USA optional
 
 ---
 
-## App icon & assets needed
+## App icon & assets
 
-Before App Store submission, create these in Canva (free):
-- `assets/icon.png` — 1024×1024px app icon
-- `assets/splash.png` — 1284×2778px splash screen
-- `assets/adaptive-icon.png` — 1024×1024px (Android)
-- `assets/notification-icon.png` — 96×96px white on transparent
-
-Suggested icon concept: a stylized **O** or abstract shape in lilac purple on dark background.
+`assets/icon.png`, `assets/splash.png`, `assets/adaptive-icon.png`, and
+`assets/notification-icon.png` are already included — a lilac-purple ring
+"O" on the dark Oryn background, matching the in-app loading screen. Replace
+them with your own artwork any time (same filenames/sizes: 1024×1024 for
+icon/adaptive-icon, 1284×2778 for splash, 96×96 white-on-transparent for the
+notification icon).
 
 ---
 

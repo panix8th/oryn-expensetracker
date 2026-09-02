@@ -30,7 +30,6 @@
       "package": "com.agit.oryn"
     },
     "plugins": [
-      "expo-camera",
       "expo-image-picker"
     ],
     "scheme": "oryn",
